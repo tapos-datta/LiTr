@@ -15,16 +15,18 @@
  */
 package com.linkedin.android.litr.filter.video.gl;
 
-import android.graphics.PointF;
-import android.opengl.GLES20;
-
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import com.linkedin.android.litr.filter.Transform;
+import com.linkedin.android.litr.filter.video.gl.parameter.ShaderParameter;
+import com.linkedin.android.litr.filter.video.gl.parameter.Uniform3f;
 
 /**
  * Colors video pixels in false colors. A color channel value of a pixel is calculated as an interpolation between
  * two channel values weighted by video pixel luminance.
  */
-public class FalseColorFilter extends BaseFrameRenderFilter {
+public class FalseColorFilter extends VideoFrameRenderFilter {
 
     private static final String FRAGMENT_SHADER =
             "#extension GL_OES_EGL_image_external : require\n" +
@@ -47,40 +49,28 @@ public class FalseColorFilter extends BaseFrameRenderFilter {
                 "gl_FragColor = vec4( mix(firstColor.rgb, secondColor.rgb, luminance), textureColor.a);\n" +
             "}\n";
 
-    private float[] firstColor;
-    private float[] secondColor;
-
     /**
      * Create the instance of frame render filter
      * @param firstColor first color channel values
      * @param secondColor second color channel values
      */
     public FalseColorFilter(@NonNull float[] firstColor, @NonNull float[] secondColor) {
-        super(DEFAULT_VERTEX_SHADER, FRAGMENT_SHADER);
-
-        this.firstColor = firstColor;
-        this.secondColor = secondColor;
+        this(firstColor, secondColor, null);
     }
 
     /**
      * Create frame render filter with source video frame, then scale, then position and then rotate the bitmap around its center as specified.
      * @param firstColor first color channel values
      * @param secondColor second color channel values
-     * @param size size in X and Y direction, relative to target video frame
-     * @param position position of source video frame  center, in relative coordinate in 0 - 1 range
-     *                 in fourth quadrant (0,0 is top left corner)
-     * @param rotation rotation angle of overlay, relative to target video frame, counter-clockwise, in degrees
+     * @param transform {@link Transform} that defines positioning of source video frame within target video frame
      */
-    public FalseColorFilter(@NonNull float[] firstColor, @NonNull float[] secondColor, @NonNull PointF size, @NonNull PointF position, float rotation) {
-        super(DEFAULT_VERTEX_SHADER, FRAGMENT_SHADER, size, position, rotation);
-
-        this.firstColor = firstColor;
-        this.secondColor = secondColor;
-    }
-
-    @Override
-    protected void applyCustomGlAttributes() {
-        GLES20.glUniform3f(getHandle("firstColor"), firstColor[0], firstColor[1], firstColor[2]);
-        GLES20.glUniform3f(getHandle("secondColor"), secondColor[0], secondColor[1], secondColor[2]);
+    public FalseColorFilter(@NonNull float[] firstColor, @NonNull float[] secondColor, @Nullable Transform transform) {
+        super(DEFAULT_VERTEX_SHADER,
+                FRAGMENT_SHADER,
+                new ShaderParameter[] {
+                        new Uniform3f("firstColor", firstColor[0], firstColor[1], firstColor[2]),
+                        new Uniform3f("secondColor", secondColor[0], secondColor[1], secondColor[2])
+                },
+                transform);
     }
 }

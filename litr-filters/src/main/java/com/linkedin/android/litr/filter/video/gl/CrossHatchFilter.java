@@ -20,15 +20,16 @@
  */
 package com.linkedin.android.litr.filter.video.gl;
 
-import android.graphics.PointF;
-import android.opengl.GLES20;
+import androidx.annotation.Nullable;
 
-import androidx.annotation.NonNull;
+import com.linkedin.android.litr.filter.Transform;
+import com.linkedin.android.litr.filter.video.gl.parameter.ShaderParameter;
+import com.linkedin.android.litr.filter.video.gl.parameter.Uniform1f;
 
 /**
  * Frame render filter that converts video frame into a "cross hatch" rendering
  */
-public class CrossHatchFilter extends BaseFrameRenderFilter {
+public class CrossHatchFilter extends VideoFrameRenderFilter {
 
     private static final String FRAGMENT_SHADER =
             "#extension GL_OES_EGL_image_external : require\n" +
@@ -75,40 +76,28 @@ public class CrossHatchFilter extends BaseFrameRenderFilter {
                 "gl_FragColor = colorToDisplay;\n" +
             "}";
 
-    private float crossHatchSpacing;
-    private float lineWidth;
-
     /**
      * Create cross hatch filter
      * @param crossHatchSpacing spacing between cross hatches, in relative coordinates
      * @param lineWidth thickness of cross hatch line, in relative coordinates
      */
     public CrossHatchFilter(float crossHatchSpacing, float lineWidth) {
-        super(DEFAULT_VERTEX_SHADER, FRAGMENT_SHADER);
-
-        this.crossHatchSpacing = crossHatchSpacing;
-        this.lineWidth = lineWidth;
+        this(crossHatchSpacing, lineWidth, null);
     }
 
     /**
      * Create frame render filter with source video frame, then scale, then position and then rotate the bitmap around its center as specified.
      * @param crossHatchSpacing spacing between cross hatches, in relative coordinates
      * @param lineWidth thickness of cross hatch line, in relative coordinates
-     * @param size size in X and Y direction, relative to target video frame
-     * @param position position of source video frame  center, in relative coordinate in 0 - 1 range
-     *                 in fourth quadrant (0,0 is top left corner)
-     * @param rotation rotation angle of overlay, relative to target video frame, counter-clockwise, in degrees
+     * @param transform {@link Transform} that defines positioning of source video frame within target video frame
      */
-    public CrossHatchFilter(float crossHatchSpacing, float lineWidth, @NonNull PointF size, @NonNull PointF position, float rotation) {
-        super(DEFAULT_VERTEX_SHADER, FRAGMENT_SHADER, size, position, rotation);
-
-        this.crossHatchSpacing = crossHatchSpacing;
-        this.lineWidth = lineWidth;
-    }
-
-    @Override
-    protected void applyCustomGlAttributes() {
-        GLES20.glUniform1f(getHandle("crossHatchSpacing"), crossHatchSpacing);
-        GLES20.glUniform1f(getHandle("lineWidth"), lineWidth);
+    public CrossHatchFilter(float crossHatchSpacing, float lineWidth, @Nullable Transform transform) {
+        super(DEFAULT_VERTEX_SHADER,
+                FRAGMENT_SHADER,
+                new ShaderParameter[] {
+                        new Uniform1f("crossHatchSpacing", crossHatchSpacing),
+                        new Uniform1f("lineWidth", lineWidth)
+                },
+                transform);
     }
 }

@@ -20,15 +20,16 @@
  */
 package com.linkedin.android.litr.filter.video.gl;
 
-import android.graphics.PointF;
-import android.opengl.GLES20;
+import androidx.annotation.Nullable;
 
-import androidx.annotation.NonNull;
+import com.linkedin.android.litr.filter.Transform;
+import com.linkedin.android.litr.filter.video.gl.parameter.ShaderParameter;
+import com.linkedin.android.litr.filter.video.gl.parameter.Uniform1f;
 
 /**
  * Frame render filter that adjusts individual RGB channels
  */
-public class RgbFilter extends BaseFrameRenderFilter {
+public class RgbFilter extends VideoFrameRenderFilter {
 
     private static final String FRAGMENT_SHADER =
             "#extension GL_OES_EGL_image_external : require\n" +
@@ -47,10 +48,6 @@ public class RgbFilter extends BaseFrameRenderFilter {
                 "gl_FragColor = vec4(textureColor.r * red, textureColor.g * green, textureColor.b * blue, 1.0);\n" +
             "}\n";
 
-    private float red;
-    private float green;
-    private float blue;
-
     /**
      * Create the instance of frame render filter
      * @param red red channel multiplier
@@ -58,11 +55,7 @@ public class RgbFilter extends BaseFrameRenderFilter {
      * @param blue blue channel multiplier
      */
     public RgbFilter(float red, float green, float blue) {
-        super(DEFAULT_VERTEX_SHADER, FRAGMENT_SHADER);
-
-        this.red = red;
-        this.green = green;
-        this.blue = blue;
+        this(red, green, blue, null);
     }
 
     /**
@@ -70,23 +63,16 @@ public class RgbFilter extends BaseFrameRenderFilter {
      * @param red red channel multiplier
      * @param green green channel multiplier
      * @param blue blue channel multiplier
-     * @param size size in X and Y direction, relative to target video frame
-     * @param position position of source video frame  center, in relative coordinate in 0 - 1 range
-     *                 in fourth quadrant (0,0 is top left corner)
-     * @param rotation rotation angle of overlay, relative to target video frame, counter-clockwise, in degrees
+     * @param transform {@link Transform} that defines positioning of source video frame within target video frame
      */
-    public RgbFilter(float red, float green, float blue, @NonNull PointF size, @NonNull PointF position, float rotation) {
-        super(DEFAULT_VERTEX_SHADER, FRAGMENT_SHADER, size, position, rotation);
-
-        this.red = red;
-        this.green = green;
-        this.blue = blue;
-    }
-
-    @Override
-    protected void applyCustomGlAttributes() {
-        GLES20.glUniform1f(getHandle("red"), red);
-        GLES20.glUniform1f(getHandle("green"), green);
-        GLES20.glUniform1f(getHandle("blue"), blue);
+    public RgbFilter(float red, float green, float blue, @Nullable Transform transform) {
+        super(DEFAULT_VERTEX_SHADER,
+                FRAGMENT_SHADER,
+                new ShaderParameter[] {
+                        new Uniform1f("red", red),
+                        new Uniform1f("green", green),
+                        new Uniform1f("blue", blue)
+                },
+                transform);
     }
 }

@@ -15,12 +15,14 @@
  */
 package com.linkedin.android.litr.filter.video.gl;
 
-import android.graphics.PointF;
-import android.opengl.GLES20;
+import androidx.annotation.Nullable;
 
-import androidx.annotation.NonNull;
+import com.linkedin.android.litr.filter.Transform;
+import com.linkedin.android.litr.filter.video.gl.parameter.ShaderParameter;
+import com.linkedin.android.litr.filter.video.gl.parameter.Uniform1f;
+import com.linkedin.android.litr.filter.video.gl.parameter.UniformMatrix4fv;
 
-public class ColorMatrixFilter extends BaseFrameRenderFilter {
+public class ColorMatrixFilter extends VideoFrameRenderFilter {
 
     private static final String COLOR_MATRIX_FRAGMENT_SHADER =
             "#extension GL_OES_EGL_image_external : require\n" +
@@ -38,9 +40,6 @@ public class ColorMatrixFilter extends BaseFrameRenderFilter {
                 "gl_FragColor = mix(textureColor, outputColor, intensity);\n" +
             "}";
 
-    private float intensity;
-    private float[] colorMatrix4x4; // size = 16; (i.e. 4 x 4)
-
     /**
      * Create ColorMatrix frame render filter
      *
@@ -48,10 +47,7 @@ public class ColorMatrixFilter extends BaseFrameRenderFilter {
      * @param intensity      value, from range 0.0 to 1.0;
      */
     public ColorMatrixFilter(float[] colorMatrix4x4, float intensity) {
-        super(DEFAULT_VERTEX_SHADER, COLOR_MATRIX_FRAGMENT_SHADER);
-
-        this.intensity = intensity;
-        this.colorMatrix4x4 = colorMatrix4x4;
+        this(colorMatrix4x4, intensity, null);
     }
 
     /**
@@ -59,21 +55,15 @@ public class ColorMatrixFilter extends BaseFrameRenderFilter {
      *
      * @param colorMatrix4x4 matrix of 4x4, contains the color information (i.e. r,g,b,a) from 0.0 to 1.0
      * @param intensity      value, from range 0.0 to 1.0;
-     * @param size           size in X and Y direction, relative to target video frame
-     * @param position       position of source video frame  center, in relative coordinate in 0 - 1 range
-     *                       in fourth quadrant (0,0 is top left corner)
-     * @param rotation       rotation angle of overlay, relative to target video frame, counter-clockwise, in degrees
+     * @param transform {@link Transform} that defines positioning of source video frame within target video frame
      */
-    public ColorMatrixFilter(float[] colorMatrix4x4, float intensity, @NonNull PointF size, @NonNull PointF position, float rotation) {
-        super(DEFAULT_VERTEX_SHADER, COLOR_MATRIX_FRAGMENT_SHADER, size, position, rotation);
-
-        this.intensity = intensity;
-        this.colorMatrix4x4 = colorMatrix4x4;
-    }
-
-    @Override
-    protected void applyCustomGlAttributes() {
-        GLES20.glUniform1f(getHandle("intensity"), intensity);
-        GLES20.glUniformMatrix4fv(getHandle("matrix"), 1, false, colorMatrix4x4, 0);
+    public ColorMatrixFilter(float[] colorMatrix4x4, float intensity, @Nullable Transform transform) {
+        super(DEFAULT_VERTEX_SHADER,
+                COLOR_MATRIX_FRAGMENT_SHADER,
+                new ShaderParameter[] {
+                        new Uniform1f("intensity", intensity),
+                        new UniformMatrix4fv("matrix", 1, false, colorMatrix4x4, 0)
+                },
+                transform);
     }
 }

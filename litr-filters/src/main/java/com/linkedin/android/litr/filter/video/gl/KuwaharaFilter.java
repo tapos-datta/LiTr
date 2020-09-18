@@ -15,17 +15,18 @@
  */
 package com.linkedin.android.litr.filter.video.gl;
 
-import android.graphics.PointF;
-import android.opengl.GLES20;
+import androidx.annotation.Nullable;
 
-import androidx.annotation.NonNull;
+import com.linkedin.android.litr.filter.Transform;
+import com.linkedin.android.litr.filter.video.gl.parameter.ShaderParameter;
+import com.linkedin.android.litr.filter.video.gl.parameter.Uniform1i;
 
 /**
  * Kuwahara image abstraction, drawn from the work of Kyprianidis, et. al. in their publication
  * "Anisotropic Kuwahara Filtering on the GPU" within the GPU Pro collection. This produces an oil-painting-like
  * image, but it is extremely computationally expensive, so video transformation can be slow.
  */
-public class KuwaharaFilter extends BaseFrameRenderFilter {
+public class KuwaharaFilter extends VideoFrameRenderFilter {
 
     private static final String FRAGMENT_SHADER =
             "#extension GL_OES_EGL_image_external : require\n" +
@@ -122,34 +123,26 @@ public class KuwaharaFilter extends BaseFrameRenderFilter {
                 "}\n" +
             "}\n";
 
-    private int radius;
-
     /**
      * Create the instance of frame render filter
      * @param radius filter radius
      */
     public KuwaharaFilter(int radius) {
-        super(DEFAULT_VERTEX_SHADER, FRAGMENT_SHADER);
-
-        this.radius = radius;
+        this(radius, null);
     }
 
     /**
      * Create frame render filter with source video frame, then scale, then position and then rotate the bitmap around its center as specified.
      * @param radius filter radius
-     * @param size size in X and Y direction, relative to target video frame
-     * @param position position of source video frame  center, in relative coordinate in 0 - 1 range
-     *                 in fourth quadrant (0,0 is top left corner)
-     * @param rotation rotation angle of overlay, relative to target video frame, counter-clockwise, in degrees
+     * @param transform {@link Transform} that defines positioning of source video frame within target video frame
      */
-    public KuwaharaFilter(int radius, @NonNull PointF size, @NonNull PointF position, float rotation) {
-        super(DEFAULT_VERTEX_SHADER, FRAGMENT_SHADER, size, position, rotation);
-
-        this.radius = radius;
+    public KuwaharaFilter(int radius, @Nullable Transform transform) {
+        super(DEFAULT_VERTEX_SHADER,
+                FRAGMENT_SHADER,
+                new ShaderParameter[] {
+                        new Uniform1i("radius", radius)
+                },
+                transform);
     }
 
-    @Override
-    protected void applyCustomGlAttributes() {
-        GLES20.glUniform1i(getHandle("radius"), radius);
-    }
 }

@@ -21,14 +21,19 @@
 package com.linkedin.android.litr.filter.video.gl;
 
 import android.graphics.PointF;
-import android.opengl.GLES20;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import com.linkedin.android.litr.filter.Transform;
+import com.linkedin.android.litr.filter.video.gl.parameter.ShaderParameter;
+import com.linkedin.android.litr.filter.video.gl.parameter.Uniform1f;
+import com.linkedin.android.litr.filter.video.gl.parameter.Uniform2f;
 
 /**
  * Frame render filter that applies a swirl distortion to video frame
  */
-public class SwirlFilter extends BaseFrameRenderFilter {
+public class SwirlFilter extends VideoFrameRenderFilter {
 
     private static final String FRAGMENT_SHADER =
             "#extension GL_OES_EGL_image_external : require\n" +
@@ -57,10 +62,6 @@ public class SwirlFilter extends BaseFrameRenderFilter {
                 "gl_FragColor = texture2D(sTexture, textureCoordinateToUse );\n" +
             "}";
 
-    private PointF center;
-    private float radius;
-    private float angle;
-
     /**
      * Create frame render filter
      * @param center center of distortion, in relative coordinates in 0 - 1 range
@@ -68,11 +69,7 @@ public class SwirlFilter extends BaseFrameRenderFilter {
      * @param angle angle of distortion
      */
     public SwirlFilter(@NonNull PointF center, float radius, float angle) {
-        super(DEFAULT_VERTEX_SHADER, FRAGMENT_SHADER);
-
-        this.center = center;
-        this.radius = radius;
-        this.angle = angle;
+        this(center, radius, angle, null);
     }
 
     /**
@@ -80,23 +77,17 @@ public class SwirlFilter extends BaseFrameRenderFilter {
      * @param center center of distortion, in relative coordinates in 0 - 1 range
      * @param radius radius of distortion, in relative coordinaes in 0 - 1 range
      * @param angle angle of distortion
-     * @param size size in X and Y direction, relative to target video frame
-     * @param position position of source video frame  center, in relative coordinate in 0 - 1 range
-     *                 in fourth quadrant (0,0 is top left corner)
-     * @param rotation rotation angle of overlay, relative to target video frame, counter-clockwise, in degrees
+     * @param transform {@link Transform} that defines positioning of source video frame within target video frame
      */
-    public SwirlFilter(@NonNull PointF center, float radius, float angle, @NonNull PointF size, @NonNull PointF position, float rotation) {
-        super(DEFAULT_VERTEX_SHADER, FRAGMENT_SHADER, size, position, rotation);
-
-        this.center = center;
-        this.radius = radius;
-        this.angle = angle;
+    public SwirlFilter(@NonNull PointF center, float radius, float angle, @Nullable Transform transform) {
+        super(DEFAULT_VERTEX_SHADER,
+                FRAGMENT_SHADER,
+                new ShaderParameter[] {
+                        new Uniform2f("center", center.x, center.y),
+                        new Uniform1f("radius", radius),
+                        new Uniform1f("angle", angle)
+                },
+                transform);
     }
 
-    @Override
-    protected void applyCustomGlAttributes() {
-        GLES20.glUniform2f(getHandle("center"), center.x, center.y);
-        GLES20.glUniform1f(getHandle("radius"), radius);
-        GLES20.glUniform1f(getHandle("angle"), angle);
-    }
 }

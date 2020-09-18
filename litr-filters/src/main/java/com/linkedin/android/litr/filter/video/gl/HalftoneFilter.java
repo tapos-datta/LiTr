@@ -20,15 +20,16 @@
  */
 package com.linkedin.android.litr.filter.video.gl;
 
-import android.graphics.PointF;
-import android.opengl.GLES20;
+import androidx.annotation.Nullable;
 
-import androidx.annotation.NonNull;
+import com.linkedin.android.litr.filter.Transform;
+import com.linkedin.android.litr.filter.video.gl.parameter.ShaderParameter;
+import com.linkedin.android.litr.filter.video.gl.parameter.Uniform1f;
 
 /**
  * Frame render filter that applies halftone effect
  */
-public class HalftoneFilter extends BaseFrameRenderFilter {
+public class HalftoneFilter extends VideoFrameRenderFilter {
 
     private static final String FRAGMENT_SHADER =
             "#extension GL_OES_EGL_image_external : require\n" +
@@ -53,40 +54,28 @@ public class HalftoneFilter extends BaseFrameRenderFilter {
                 "gl_FragColor = vec4(vec3(checkForPresenceWithinDot), 1.0);\n" +
             "}";
 
-    private float fractionalPixelWidth;
-    private float aspectRatio;
-
     /**
      * Create the instance of frame render filter
      * @param fractionalPixelWidth width of fractional pixel
      * @param aspectRatio aspect ratio of a pixel
      */
     public HalftoneFilter(float fractionalPixelWidth, float aspectRatio) {
-        super(DEFAULT_VERTEX_SHADER, FRAGMENT_SHADER);
-
-        this.fractionalPixelWidth = fractionalPixelWidth;
-        this.aspectRatio = aspectRatio;
+        this(fractionalPixelWidth, aspectRatio, null);
     }
 
     /**
      * Create frame render filter with source video frame, then scale, then position and then rotate the bitmap around its center as specified.
      * @param fractionalPixelWidth width of fractional pixel
      * @param aspectRatio aspect ratio of a pixel
-     * @param size size in X and Y direction, relative to target video frame
-     * @param position position of source video frame  center, in relative coordinate in 0 - 1 range
-     *                 in fourth quadrant (0,0 is top left corner)
-     * @param rotation rotation angle of overlay, relative to target video frame, counter-clockwise, in degrees
+     * @param transform {@link Transform} that defines positioning of source video frame within target video frame
      */
-    public HalftoneFilter(float fractionalPixelWidth, float aspectRatio, @NonNull PointF size, @NonNull PointF position, float rotation) {
-        super(DEFAULT_VERTEX_SHADER, FRAGMENT_SHADER, size, position, rotation);
-
-        this.fractionalPixelWidth = fractionalPixelWidth;
-        this.aspectRatio = aspectRatio;
-    }
-
-    @Override
-    protected void applyCustomGlAttributes() {
-        GLES20.glUniform1f(getHandle("fractionalPixelWidth"), fractionalPixelWidth);
-        GLES20.glUniform1f(getHandle("aspectRatio"), aspectRatio);
+    public HalftoneFilter(float fractionalPixelWidth, float aspectRatio, @Nullable Transform transform) {
+        super(DEFAULT_VERTEX_SHADER,
+                FRAGMENT_SHADER,
+                new ShaderParameter[] {
+                        new Uniform1f("fractionalPixelWidth", fractionalPixelWidth),
+                        new Uniform1f("aspectRatio", aspectRatio)
+                },
+                transform);
     }
 }

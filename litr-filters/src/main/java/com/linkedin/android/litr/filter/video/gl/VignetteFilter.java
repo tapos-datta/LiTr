@@ -16,16 +16,22 @@
 package com.linkedin.android.litr.filter.video.gl;
 
 import android.graphics.PointF;
-import android.opengl.GLES20;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import com.linkedin.android.litr.filter.Transform;
+import com.linkedin.android.litr.filter.video.gl.parameter.ShaderParameter;
+import com.linkedin.android.litr.filter.video.gl.parameter.Uniform1f;
+import com.linkedin.android.litr.filter.video.gl.parameter.Uniform2f;
+import com.linkedin.android.litr.filter.video.gl.parameter.Uniform3f;
 
 /**
  * Performs a vignetting effect, fading out the video frame at the edges
  * x:
  * y: The directional intensity of the vignetting, with a default of x = 0.75, y = 0.5
  */
-public class VignetteFilter extends BaseFrameRenderFilter {
+public class VignetteFilter extends VideoFrameRenderFilter {
 
     private static final String FRAGMENT_SHADER =
             "#extension GL_OES_EGL_image_external : require\n" +
@@ -46,11 +52,6 @@ public class VignetteFilter extends BaseFrameRenderFilter {
                 "gl_FragColor = vec4(mix(rgb.x, vignetteColor.x, percent), mix(rgb.y, vignetteColor.y, percent), mix(rgb.z, vignetteColor.z, percent), 1.0);\n" +
             "}";
 
-    private PointF vignetteCenter;
-    private float[] vignetteColor;
-    private float vignetteStart;
-    private float vignetteEnd;
-
     /**
      * Create the instance of frame render filter
      * @param center center location, in relative coordinates
@@ -59,12 +60,7 @@ public class VignetteFilter extends BaseFrameRenderFilter {
      * @param end end intensity
      */
     public VignetteFilter(@NonNull PointF center, @NonNull float[] color, float start, float end) {
-        super(DEFAULT_VERTEX_SHADER, FRAGMENT_SHADER);
-
-        this.vignetteCenter = center;
-        this.vignetteColor = color;
-        this.vignetteStart = start;
-        this.vignetteEnd = end;
+        this(center, color, start, end, null);
     }
 
     /**
@@ -73,25 +69,17 @@ public class VignetteFilter extends BaseFrameRenderFilter {
      * @param color RGB color
      * @param start start intensity
      * @param end end intensity
-     * @param size size in X and Y direction, relative to target video frame
-     * @param position position of source video frame  center, in relative coordinate in 0 - 1 range
-     *                 in fourth quadrant (0,0 is top left corner)
-     * @param rotation rotation angle of overlay, relative to target video frame, counter-clockwise, in degrees
+     * @param transform {@link Transform} that defines positioning of source video frame within target video frame
      */
-    public VignetteFilter(@NonNull PointF center, @NonNull float[] color, float start, float end, @NonNull PointF size, @NonNull PointF position, float rotation) {
-        super(DEFAULT_VERTEX_SHADER, FRAGMENT_SHADER, size, position, rotation);
-
-        this.vignetteCenter = center;
-        this.vignetteColor = color;
-        this.vignetteStart = start;
-        this.vignetteEnd = end;
-    }
-
-    @Override
-    protected void applyCustomGlAttributes() {
-        GLES20.glUniform2f(getHandle("vignetteCenter"), vignetteCenter.x, vignetteCenter.y);
-        GLES20.glUniform3f(getHandle("vignetteColor"), vignetteColor[0], vignetteColor[1], vignetteColor[2]);
-        GLES20.glUniform1f(getHandle("vignetteStart"), vignetteStart);
-        GLES20.glUniform1f(getHandle("vignetteEnd"), vignetteEnd);
+    public VignetteFilter(@NonNull PointF center, @NonNull float[] color, float start, float end, @Nullable Transform transform) {
+        super(DEFAULT_VERTEX_SHADER,
+                FRAGMENT_SHADER,
+                new ShaderParameter[] {
+                        new Uniform2f("vignetteCenter", center.x, center.y),
+                        new Uniform3f("vignetteColor", color[0], color[1], color[2]),
+                        new Uniform1f("vignetteStart", start),
+                        new Uniform1f("vignetteEnd", end)
+                },
+                transform);
     }
 }

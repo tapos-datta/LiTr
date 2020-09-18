@@ -7,14 +7,16 @@
  */
 package com.linkedin.android.litr.filter.video.gl;
 
-import android.graphics.PointF;
-import android.opengl.GLES20;
+import androidx.annotation.Nullable;
 
-import androidx.annotation.NonNull;
+import com.linkedin.android.litr.filter.Transform;
+import com.linkedin.android.litr.filter.video.gl.parameter.ShaderParameter;
+import com.linkedin.android.litr.filter.video.gl.parameter.Uniform1f;
+import com.linkedin.android.litr.filter.video.gl.parameter.Uniform3fv;
 
 import java.nio.FloatBuffer;
 
-public class ColorMonochromeFilter extends BaseFrameRenderFilter {
+public class ColorMonochromeFilter extends VideoFrameRenderFilter {
 
     private static final String FRAGMENT_SHADER =
             "#extension GL_OES_EGL_image_external : require\n" +
@@ -40,9 +42,6 @@ public class ColorMonochromeFilter extends BaseFrameRenderFilter {
                 "gl_FragColor = vec4(mix(textureColor.rgb, outputColor.rgb, intensity), textureColor.a);\n" +
             "}";
 
-    private float intensity;
-    private float[] inputColorRGB;
-
     /**
      * Create the instance frame render filter
      *
@@ -50,10 +49,7 @@ public class ColorMonochromeFilter extends BaseFrameRenderFilter {
      * @param intensity     value, from range 0.0 to 1.0;
      */
     public ColorMonochromeFilter(float[] inputColorRGB, float intensity) {
-        super(DEFAULT_VERTEX_SHADER, FRAGMENT_SHADER);
-
-        this.intensity = intensity;
-        this.inputColorRGB = inputColorRGB;
+        this(inputColorRGB, intensity, null);
     }
 
     /**
@@ -61,21 +57,15 @@ public class ColorMonochromeFilter extends BaseFrameRenderFilter {
      *
      * @param inputColorRGB contains the color information (i.e. r,g,b) from 0.0 to 1.0
      * @param intensity     value, from range 0.0 to 1.0;
-     * @param size          size in X and Y direction, relative to target video frame
-     * @param position      position of source video frame  center, in relative coordinate in 0 - 1 range
-     *                      in fourth quadrant (0,0 is top left corner)
-     * @param rotation      rotation angle of overlay, relative to target video frame, counter-clockwise, in degrees
+     * @param transform {@link Transform} that defines positioning of source video frame within target video frame
      */
-    public ColorMonochromeFilter(float[] inputColorRGB, float intensity, @NonNull PointF size, @NonNull PointF position, float rotation) {
-        super(DEFAULT_VERTEX_SHADER, FRAGMENT_SHADER, size, position, rotation);
-
-        this.intensity = intensity;
-        this.inputColorRGB = inputColorRGB;
-    }
-
-    @Override
-    protected void applyCustomGlAttributes() {
-        GLES20.glUniform1f(getHandle("intensity"), intensity);
-        GLES20.glUniform3fv(getHandle("newColor"), 1, FloatBuffer.wrap(inputColorRGB));
+    public ColorMonochromeFilter(float[] inputColorRGB, float intensity, @Nullable Transform transform) {
+        super(DEFAULT_VERTEX_SHADER,
+                FRAGMENT_SHADER,
+                new ShaderParameter[] {
+                        new Uniform1f("intensity", intensity),
+                        new Uniform3fv("newColor", 1, FloatBuffer.wrap(inputColorRGB))
+                },
+                transform);
     }
 }

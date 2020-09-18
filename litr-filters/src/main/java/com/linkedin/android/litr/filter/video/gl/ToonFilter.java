@@ -20,15 +20,17 @@
  */
 package com.linkedin.android.litr.filter.video.gl;
 
-import android.graphics.PointF;
-import android.opengl.GLES20;
+import androidx.annotation.Nullable;
 
-import androidx.annotation.NonNull;
+import com.linkedin.android.litr.filter.Transform;
+import com.linkedin.android.litr.filter.video.gl.parameter.ShaderParameter;
+import com.linkedin.android.litr.filter.video.gl.parameter.Uniform1f;
+import com.linkedin.android.litr.filter.video.gl.shader.VertexShader;
 
 /**
  * Frame render filter that applies cartoon-like effect
  */
-public class ToonFilter extends Base3x3TextureSamplingFilter {
+public class ToonFilter extends VideoFrameRenderFilter {
 
     private static final String FRAGMENT_SHADER =
             "#extension GL_OES_EGL_image_external : require\n" +
@@ -75,9 +77,6 @@ public class ToonFilter extends Base3x3TextureSamplingFilter {
                 "gl_FragColor = vec4(posterizedImageColor * thresholdTest, textureColor.a);\n" +
             "}";
 
-    private float threshold;
-    private float quantizationLevels;
-
     /**
      * Create the instance of frame render filter
      * @param texelWidth relative width of a texel
@@ -86,10 +85,7 @@ public class ToonFilter extends Base3x3TextureSamplingFilter {
      * @param quantizationLevels number of color quantization levels
      */
     public ToonFilter(float texelWidth, float texelHeight, float threshold, float quantizationLevels) {
-        super(FRAGMENT_SHADER, texelWidth, texelHeight);
-
-        this.threshold = threshold;
-        this.quantizationLevels = quantizationLevels;
+        this(texelWidth, texelHeight, threshold, quantizationLevels, null);
     }
 
     /**
@@ -98,22 +94,17 @@ public class ToonFilter extends Base3x3TextureSamplingFilter {
      * @param texelHeight relative height of a texel
      * @param threshold edge detection threshold
      * @param quantizationLevels number of color quantization levels
-     * @param size size in X and Y direction, relative to target video frame
-     * @param position position of source video frame  center, in relative coordinate in 0 - 1 range
-     *                 in fourth quadrant (0,0 is top left corner)
-     * @param rotation rotation angle of overlay, relative to target video frame, counter-clockwise, in degrees
+     * @param transform {@link Transform} that defines positioning of source video frame within target video frame
      */
-    public ToonFilter(float texelWidth, float texelHeight, float threshold, float quantizationLevels, @NonNull PointF size, @NonNull PointF position, float rotation) {
-        super(FRAGMENT_SHADER, texelWidth, texelHeight, size, position, rotation);
-
-        this.threshold = threshold;
-        this.quantizationLevels = quantizationLevels;
-    }
-
-    @Override
-    protected void applyCustomGlAttributes() {
-        super.applyCustomGlAttributes();
-        GLES20.glUniform1f(getHandle("threshold"), threshold);
-        GLES20.glUniform1f(getHandle("quantizationLevels"), quantizationLevels);
+    public ToonFilter(float texelWidth, float texelHeight, float threshold, float quantizationLevels, @Nullable Transform transform) {
+        super(VertexShader.THREE_X_THREE_TEXTURE_SAMPLING_VERTEX_SHADER,
+                FRAGMENT_SHADER,
+                new ShaderParameter[] {
+                        new Uniform1f("texelWidth", texelWidth),
+                        new Uniform1f("texelHeight", texelHeight),
+                        new Uniform1f("threshold", threshold),
+                        new Uniform1f("quantizationLevels", quantizationLevels)
+                },
+                transform);
     }
 }

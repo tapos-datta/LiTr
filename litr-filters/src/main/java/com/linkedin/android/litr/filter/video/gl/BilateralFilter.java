@@ -20,17 +20,16 @@
  */
 package com.linkedin.android.litr.filter.video.gl;
 
-import android.graphics.PointF;
-import android.opengl.GLES20;
+import androidx.annotation.Nullable;
 
-import androidx.annotation.NonNull;
-
-import static android.opengl.GLES20.glUniform1f;
+import com.linkedin.android.litr.filter.Transform;
+import com.linkedin.android.litr.filter.video.gl.parameter.ShaderParameter;
+import com.linkedin.android.litr.filter.video.gl.parameter.Uniform1f;
 
 /**
  * Bilateral smoothing filter
  */
-public class BilateralFilter extends BaseFrameRenderFilter {
+public class BilateralFilter extends VideoFrameRenderFilter {
 
     private static final String VERTEX_SHADER =
             "uniform mat4 uMVPMatrix;\n" +
@@ -140,10 +139,6 @@ public class BilateralFilter extends BaseFrameRenderFilter {
                 "gl_FragColor = sum / gaussianWeightTotal;\n" +
             "}";
 
-    private float texelWidth;
-    private float texelHeight;
-    private float blurSize;
-
     /**
      * Create the instance of frame render filter
      * @param texelWidth relative width of a texel
@@ -151,11 +146,7 @@ public class BilateralFilter extends BaseFrameRenderFilter {
      * @param blurSize blur size
      */
     public BilateralFilter(float texelWidth, float texelHeight, float blurSize) {
-        super(VERTEX_SHADER, FRAGMENT_SHADER);
-
-        this.texelWidth = texelWidth;
-        this.texelHeight = texelHeight;
-        this.blurSize = blurSize;
+        this(texelWidth, texelHeight, blurSize, null);
     }
 
     /**
@@ -163,23 +154,16 @@ public class BilateralFilter extends BaseFrameRenderFilter {
      * @param texelWidth relative width of a texel
      * @param texelHeight relative height of a texel
      * @param blurSize blur size
-     * @param size size in X and Y direction, relative to target video frame
-     * @param position position of source video frame  center, in relative coordinate in 0 - 1 range
-     *                 in fourth quadrant (0,0 is top left corner)
-     * @param rotation rotation angle of overlay, relative to target video frame, counter-clockwise, in degrees
+     * @param transform {@link Transform} that defines positioning of source video frame within target video frame
      */
-    public BilateralFilter(float texelWidth, float texelHeight, float blurSize, @NonNull PointF size, @NonNull PointF position, float rotation) {
-        super(DEFAULT_VERTEX_SHADER, FRAGMENT_SHADER, size, position, rotation);
-
-        this.texelWidth = texelWidth;
-        this.texelHeight = texelHeight;
-        this.blurSize = blurSize;
-    }
-
-    @Override
-    protected void applyCustomGlAttributes() {
-        GLES20.glUniform1f(getHandle("texelWidth"), texelWidth);
-        GLES20.glUniform1f(getHandle("texelHeight"), texelHeight);
-        glUniform1f(getHandle("blurSize"), blurSize);
+    public BilateralFilter(float texelWidth, float texelHeight, float blurSize, @Nullable Transform transform) {
+        super(VERTEX_SHADER,
+                FRAGMENT_SHADER,
+                new ShaderParameter[] {
+                        new Uniform1f("texelWidth", texelWidth),
+                        new Uniform1f("texelHeight", texelHeight),
+                        new Uniform1f("blurSize", blurSize)
+                },
+                transform);
     }
 }
